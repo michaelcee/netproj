@@ -84,7 +84,7 @@ public class BoardPanelGrid extends JFrame {
 		            public void mouseExited(MouseEvent evt) {
 		                spotMouseExited(evt);
 		            }
-		            public void mousePressed(MouseEvent evt) {
+		            public void mouseClicked(MouseEvent evt) {
 		                spotMousePressed(evt);
 		            }
 		        });
@@ -197,8 +197,7 @@ public class BoardPanelGrid extends JFrame {
     
     /**
      * start a new game.  this method is to be invoked externally by the attached
-     * FIARClient, by the socket-listening thread.  as a result, we have to 
-     * invoke on the event thread.  
+     * FIARClient, by the socket-listening thread.
      * 
      * sets the background color of all spots to neutral
      */

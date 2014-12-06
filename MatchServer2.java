@@ -9,9 +9,9 @@ import java.net.*;
  * @author MIKE
  *
  */
-public class MatchServer {	
+public class MatchServer2 {	
 	
-	public MatchServer(){
+	public MatchServer2(){
 		
 	}
 	
@@ -95,7 +95,7 @@ public class MatchServer {
 	}
 	
 	public static void main(String[] args) throws Exception{
-		MatchServer ms = new MatchServer();
+		MatchServer2 ms = new MatchServer2();
 		ms.startServer();
 	}//end Main	
 	

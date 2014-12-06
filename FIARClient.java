@@ -19,7 +19,7 @@ public class FIARClient extends FIARMsg {
 	
 	public FIARClient(){
 	
-		bpg = new BoardPanelGrid("Don't worry about it", this);
+		bpg = new BoardPanelGrid("Five in a Row", this);
 		bpg.launch();
 	}
 	
@@ -65,7 +65,7 @@ public class FIARClient extends FIARMsg {
 		}
 	}
 	
-	private void initComms(int port, String host){
+	void initComms(int port, String host){
 		try {
 			soc = new Socket(host, port);
 			wtr = new BufferedWriter(new OutputStreamWriter(soc.getOutputStream()));
@@ -94,7 +94,7 @@ public class FIARClient extends FIARMsg {
 	 * @param y
 	 * @return
 	 */
-	public boolean sendMove(int x, int y){
+	boolean sendMove(int x, int y){
 		try {
 			wtr.write(createMsg(Prefix.SPOT_CHANGE, makeCoords(x,y)));
 			wtr.newLine();
@@ -110,9 +110,9 @@ public class FIARClient extends FIARMsg {
 		return true;
 	}
 	
-	public void reqSinglePlayer(){
+	void reqSinglePlayer(){
 		try {
-			wtr.write(createMsg(Prefix.SINGLE_PLAYER, ""));
+			wtr.write(createMsg(Prefix.SINGLE_PLAYER, "true"));
 			wtr.newLine();
 			wtr.flush();
 		} catch (IOException e) {
@@ -121,7 +121,18 @@ public class FIARClient extends FIARMsg {
 		}
 	}
 	
-	public String getMsg(){
+	void reqMultiPlayer(){
+		try {
+			wtr.write(createMsg(Prefix.SINGLE_PLAYER, "false"));
+			wtr.newLine();
+			wtr.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	String getMsg(){
 		try {
 			return rdr.readLine();
 		} catch (IOException e) {
@@ -132,7 +143,7 @@ public class FIARClient extends FIARMsg {
 		return null;
 	}
 	
-	public void requestNew(boolean yes){
+	void requestNew(boolean yes){
 		try {
 			if(yes)
 				wtr.write(createMsg(Prefix.NEW_GAME, ""));
