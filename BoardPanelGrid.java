@@ -11,7 +11,7 @@ public class BoardPanelGrid extends JFrame {
     final static int maxGap = 20;
     JComboBox horGapComboBox;
     JComboBox verGapComboBox;
-    JButton applyButton = new JButton("Apply gaps");
+    JButton singleButton = new JButton("Play Single Player");
     JButton newGameButton = new JButton("New Game");
     GridLayout boardLayout = new GridLayout(10,10);
     private Color[] colArr = {new Color(150, 160, 150), new Color(255,100,100), new Color(100,100,255)};
@@ -92,15 +92,6 @@ public class BoardPanelGrid extends JFrame {
 		        boardGrid.add(spot);
         	}
         }
-        //Add buttons to experiment with Grid Layout
-       /* boardGrid.add(new JButton("Button 1"));
-        boardGrid.add(new JButton("Button 2"));
-        boardGrid.add(new JButton("Button 3"));
-        boardGrid.add(new JButton("Long-Named Button 4"));
-        boardGrid.add(new JButton("5"));
-        boardGrid.add(new JButton("mike"));
-        boardGrid.add(new JButton("missa"));*/
-
          
         //Add controls to set up horizontal and vertical gaps
         controls.add(new Label("Horizontal gap:"));
@@ -109,12 +100,16 @@ public class BoardPanelGrid extends JFrame {
         controls.add(newGameButton);
         controls.add(horGapComboBox);
         controls.add(verGapComboBox);
-        controls.add(applyButton);
+        controls.add(singleButton);
+        singleButton.setEnabled(false);
     
          
         //Process the Apply gaps button press
-        applyButton.addActionListener(new ActionListener(){
+        singleButton.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
+            	
+            	client.reqSinglePlayer();
+            	/*
                 //Get the horizontal gap value
                 String horGap = (String)horGapComboBox.getSelectedItem();
                 //Get the vertical gap value
@@ -125,6 +120,8 @@ public class BoardPanelGrid extends JFrame {
                 boardLayout.setVgap(Integer.parseInt(verGap));
                 //Set up the layout of the buttons
                 boardLayout.layoutContainer(boardGrid);
+                */
+                
             }
         });
         
@@ -329,8 +326,17 @@ public class BoardPanelGrid extends JFrame {
         });
     }
     
+    public void singlePlayer(final boolean on){
+    	SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+            	singleButton.setEnabled(on);
+            }
+        });
+    	
+    }
+    
     public static void main(String[] args){
-    	BoardPanelGrid bpg = new BoardPanelGrid("Don't worry about it", null);
+    	BoardPanelGrid bpg = new BoardPanelGrid("Five in a Row", null);
     	bpg.launch();
     }
 

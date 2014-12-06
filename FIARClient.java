@@ -29,6 +29,9 @@ public class FIARClient extends FIARMsg {
 		case INIT:
 			bpg.setPlayer(Integer.valueOf(getPayload(msg)));
 			break;
+		case SINGLE_PLAYER: 
+			bpg.singlePlayer(Boolean.valueOf(getPayload(msg)));
+			break;
 		case GAME_OVER:{
 			String[] winningCoords = getPayload(msg).split(DELIM);
 			if(winningCoords.length != 1){
@@ -105,6 +108,17 @@ public class FIARClient extends FIARMsg {
 		}
 		
 		return true;
+	}
+	
+	public void reqSinglePlayer(){
+		try {
+			wtr.write(createMsg(Prefix.SINGLE_PLAYER, ""));
+			wtr.newLine();
+			wtr.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public String getMsg(){

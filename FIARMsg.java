@@ -27,6 +27,11 @@ public abstract class FIARMsg {
 						//from server only
 						//payload: <player>-winning run in x0,y0-x1,y1 form
 		
+		SINGLE_PLAYER,	//request a single player game
+						//both directions
+						//no payload.  prompt from server and response from player
+						//for optional single player mode
+		
 		NEW_GAME		//new game starting
 						//both directions
 						//payload: none

@@ -37,6 +37,10 @@ public class FIAR extends FIARMsg {
 		winningRun = null;
 	}
 	
+	public int[][] getBoard(){
+		return board;
+	}
+	
 	//debugging use ONLY
 	@SuppressWarnings("unused")
 	private void setBoard(int[][] board){
