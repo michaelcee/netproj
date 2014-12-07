@@ -1,6 +1,7 @@
 package netproj;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * this class represents an instance of the game 5 in a row.  the game board,
@@ -37,8 +38,21 @@ public class FIAR extends FIARMsg {
 		winningRun = null;
 	}
 	
+	/**
+	 * creates a deep copy of the game board int[][] and returns it.  If not
+	 * for a deep copy, then callers of this method could directly modify the 
+	 * board object to horrible effect!
+	 * 
+	 * @return - a deep copy of the game board.  
+	 */
 	public int[][] getBoard(){
-		return board;
+		int[][] retVal = new int[10][10];
+		for(int i = 0; i < 10; i++){
+			for(int j = 0; j < 10; i++){
+				retVal[i][j] = board[i][j];
+			}
+		}
+		return retVal;
 	}
 	
 	//debugging use ONLY

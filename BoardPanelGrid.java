@@ -7,13 +7,15 @@ import javax.swing.*;
 import javax.swing.border.Border;
  
 public class BoardPanelGrid extends JFrame {
-    static final String gapList[] = {"5", "10", "15", "20"};
+    //static final String gapList[] = {"5", "10", "15", "20"};
     final static int maxGap = 20;
-    JComboBox horGapComboBox;
-    JComboBox verGapComboBox;
-    JButton singleButton = new JButton("Play Single Player");
-    JButton newGameButton = new JButton("New Game");
-    GridLayout boardLayout = new GridLayout(10,10);
+    //private JComboBox horGapComboBox;
+    //private JComboBox verGapComboBox;
+    private JButton connectButton = new JButton("Connect");
+    private JButton newGameButton = new JButton("New Game");
+    private JTextField hostBox = new JTextField("localhost");
+    private JCheckBox checkBox = new JCheckBox();
+    private GridLayout boardLayout = new GridLayout(10,10);
     private Color[] colArr = {new Color(150, 160, 150), new Color(255,100,100), new Color(100,100,255)};
     private Color[] highArr = {new Color(150, 100, 100), new Color(100,100,150)};
     private Border[] borArr; //0 no high, 1 = high, 2 = winning run
@@ -28,18 +30,13 @@ public class BoardPanelGrid extends JFrame {
     private final FIARClient client;
      
     public BoardPanelGrid(String name, FIARClient client) {
-    	super(name);
+    	super(name);    	
     	borArr = new Border[3];
     	borArr[0] = BorderFactory.createLineBorder(new Color(0, 0, 0));
     	borArr[1] = BorderFactory.createLineBorder(new Color(255, 255, 255));
     	borArr[2] = BorderFactory.createLineBorder(new Color(255, 255, 0));
         setResizable(false);
         this.client = client;
-    }
-     
-    public void initGaps() {
-        horGapComboBox = new JComboBox(gapList);
-        verGapComboBox = new JComboBox(gapList);
     }
     
     public void setPlayer(int playerNum){
@@ -48,7 +45,6 @@ public class BoardPanelGrid extends JFrame {
      
     
     public void addComponentsToPane(final Container pane) {
-        initGaps();
         final JPanel boardGrid = new JPanel();
         boardGrid.setLayout(boardLayout);
         boardLayout.setHgap(5);
@@ -57,10 +53,6 @@ public class BoardPanelGrid extends JFrame {
         boardGrid.setPreferredSize(new Dimension(412, 412));
         JPanel controls = new JPanel();
         controls.setLayout(new GridLayout(2,3));
-         
-        //Set up components preferred size
-        //JButton b = new JButton("Just fake button");
-        //Dimension buttonSize = b.getPreferredSize();
         boardGrid.setPreferredSize(new Dimension((int)( (30+maxGap) * 10 + maxGap),
         		(int)( (30+maxGap) * 10 + maxGap)));
         
@@ -85,7 +77,7 @@ public class BoardPanelGrid extends JFrame {
 		                spotMouseExited(evt);
 		            }
 		            public void mouseClicked(MouseEvent evt) {
-		                spotMousePressed(evt);
+		                spotMouseClicked(evt);
 		            }
 		        });
 		        
@@ -94,34 +86,30 @@ public class BoardPanelGrid extends JFrame {
         }
          
         //Add controls to set up horizontal and vertical gaps
-        controls.add(new Label("Horizontal gap:"));
-        controls.add(new Label("Vertical gap:"));
+        Label spLabel = new Label("Single player:");
+        spLabel.setAlignment(Label.RIGHT);
+        controls.add(spLabel);
+        controls.add(checkBox);
         newGameButton.setEnabled(false);
         controls.add(newGameButton);
-        controls.add(horGapComboBox);
-        controls.add(verGapComboBox);
-        controls.add(singleButton);
-        singleButton.setEnabled(false);
+        Label hostLabel = new Label("Host Name:");
+        hostLabel.setAlignment(Label.RIGHT);
+        controls.add(hostLabel);
+        controls.add(hostBox);
+
+
+
+        
+        //controls.add(horGapComboBox);
+        //controls.add(verGapComboBox);
+        controls.add(connectButton);
+        connectButton.setEnabled(true);
     
          
         //Process the Apply gaps button press
-        singleButton.addActionListener(new ActionListener(){
+        connectButton.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
-            	
-            	client.reqSinglePlayer();
-            	/*
-                //Get the horizontal gap value
-                String horGap = (String)horGapComboBox.getSelectedItem();
-                //Get the vertical gap value
-                String verGap = (String)verGapComboBox.getSelectedItem();
-                //Set up the horizontal gap value
-                boardLayout.setHgap(Integer.parseInt(horGap));
-                //Set up the vertical gap value
-                boardLayout.setVgap(Integer.parseInt(verGap));
-                //Set up the layout of the buttons
-                boardLayout.layoutContainer(boardGrid);
-                */
-                
+            	connect();
             }
         });
         
@@ -161,17 +149,29 @@ public class BoardPanelGrid extends JFrame {
     	}
     }
 
-    private void spotMousePressed(MouseEvent evt) {//GEN-FIRST:event_jLabel100MouseReleased
-    	
+    private void spotMouseClicked(MouseEvent evt) {//GEN-FIRST:event_jLabel100MouseReleased
+    	System.out.println("pressed!");
     	SpotLabel spot = (SpotLabel) evt.getSource();
     	if(!boolBoard[spot.x][spot.y]){
+    		System.out.println("valid bool board");
     		if(client.ready()){
+    			System.out.println("client ready");
     			if(client.sendMove(spot.x, spot.y)){
     				//success			    	
     			} else {
     				//not success
     			}
     		}
+    	}
+    }
+    
+    private void connect(){
+    	client.initComms(8484, hostBox.getText());
+    	
+    	if(checkBox.isSelected()){
+    		client.reqSinglePlayer();
+    	} else {
+    		client.reqMultiPlayer();
     	}
     }
     /**
@@ -328,7 +328,7 @@ public class BoardPanelGrid extends JFrame {
     public void singlePlayer(final boolean on){
     	SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-            	singleButton.setEnabled(on);
+            	connectButton.setEnabled(on);
             }
         });
     	

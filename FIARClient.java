@@ -24,7 +24,6 @@ public class FIARClient extends FIARMsg {
 	}
 	
 	private void processMsg(String msg){
-		System.out.println(msg);
 		switch(getPrefix(msg)){
 		case INIT:
 			bpg.setPlayer(Integer.valueOf(getPayload(msg)));
@@ -52,7 +51,6 @@ public class FIARClient extends FIARMsg {
 			break;
 		case PROMPT:
 			ready = true;
-			System.out.println("PROMPTED BY SERVER");
 			break;
 		case SPOT_CHANGE:
 			String[] payload = getPayload(msg).split(DELIM);
@@ -64,27 +62,44 @@ public class FIARClient extends FIARMsg {
 			
 		}
 	}
-	
-	void initComms(int port, String host){
+	/**
+	 * start a new thread to listen for communications from the server.  
+	 * 
+	 * this is intended to be called from the UI so a new thread was necessary 
+	 * otherwise the UI itself would completely freeze waiting for messages and
+	 * stuff.    
+	 * @param port - this should be hardwired to 8484 for now
+	 * @param host - can be IP address or server's name
+	 */
+	void initComms(final int port, final String host){
+
 		try {
 			soc = new Socket(host, port);
-			wtr = new BufferedWriter(new OutputStreamWriter(soc.getOutputStream()));
 			rdr = new BufferedReader(new InputStreamReader(soc.getInputStream()));
-			System.out.println("CONNECTED TO SERVER");
-			
-			//just keep listening and process messages as they come
-			while(keepGoing){
-				processMsg(rdr.readLine());
-				
-			} 
-			
-		} catch (UnknownHostException e) {
+			wtr = new BufferedWriter(new OutputStreamWriter(soc.getOutputStream()));
+		} catch (IOException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+			e1.printStackTrace();
+		}
+		System.out.println("CONNECTED TO SERVER");
+    	new Thread( new Runnable(){
+    		public void run(){
+				//just keep listening and process messages as they come
+				while(keepGoing){
+					try {
+						String msg = rdr.readLine();
+						if(null != msg){
+							System.out.println(">received: " + msg);
+							processMsg(msg);
+						}
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				} 
+    		}
+
+    	}).start();
 	}
 	
 	
@@ -95,6 +110,7 @@ public class FIARClient extends FIARMsg {
 	 * @return
 	 */
 	boolean sendMove(int x, int y){
+		System.out.println("sending move for spot: " + makeCoords(x,y));
 		try {
 			wtr.write(createMsg(Prefix.SPOT_CHANGE, makeCoords(x,y)));
 			wtr.newLine();
@@ -178,7 +194,6 @@ public class FIARClient extends FIARMsg {
 	public static void main(String[] args) {
 		
 		FIARClient client = new FIARClient();
-		client.initComms(8484, "localhost");
 		
 	}
 	

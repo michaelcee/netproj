@@ -1,6 +1,8 @@
 package netproj;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
 
 
@@ -9,7 +11,7 @@ import java.net.*;
  * @author MIKE
  *
  */
-public class MatchServer {	
+public class MatchServer extends FIARMsg{	
 	
 	public MatchServer(){
 		
@@ -19,80 +21,49 @@ public class MatchServer {
 		int port = 8484;
 		ServerSocket se = new ServerSocket(port);
 		boolean keepGoing = true;
-		
-		
-		/**
-		 * main matchmaking loop.  
-		 * 
-		 * inverted is true when
-		 */
-		boolean inverted = false;
-		FIARServer fs = new FIARServer();
+
+		FIARServer fs = null;
+		boolean waiting = false;
+		System.out.println("Server started.  Listening for clients");
 		while(keepGoing){
-			/* player [a] joins inside 1st IF statement
-			 * player [b] joins after 
-			 * 
-			 * if we're not inverted, it means there is no game waiting and 
-			 * player a will join spot 1.  
-			 * 
-			 * otherwise, it means that on the previous loop around, player [a] 
-			 * or [b] wanted to play single player and was put into a new game 
-			 * spot 1.  player [a] in this case will go in spot 2.  this means 
-			 * that there is a state where player [a] is in both spots
-			 */
-			if(!inverted){ 						
-				fs = new FIARServer();
-				Socket soc = se.accept();
-				System.out.println("player [A] in spot 1");
-				fs.setSocket(true, soc);
-				fs.promptSingle(true);
-			} else {
-				Socket soc = se.accept();
-				/*player [b] in spot 1 from the previous loop could want to play
-				 * single player.  in which case, we initialize that game and
-				 * then put player [a] into spot 1 of a new game
-				 */
-				if(fs.isSingle()){
-					System.out.println("player [b] in spot 1 wants single player");
-					fs.promptSingle(false);
-					new Thread(fs).start();
-					
-					fs = new FIARServer();
-					fs.setSocket(true, soc);
-					fs.promptSingle(true);
-					System.out.println("player [a] in spot 1 inverted");
-				} else {
-					fs.setSocket(false, soc);
-					fs.promptSingle(false);
-					new Thread(fs).start();		
-					System.out.println("player [a] in spot 2 game init");
-				}
-				inverted = false;
-			}
 			
-			Socket soc2 = se.accept();
-			if(fs.isSingle()){
-				System.out.println("player [A] single player");
-				fs.promptSingle(false);
+			Socket incomingSoc = se.accept();
+			System.out.print(">>new connection: ");
+			//client connected.  clients will immediately announce whether or
+			//not they're connecting for single or multi player:
+			BufferedReader rdr = new BufferedReader(new 
+					InputStreamReader(incomingSoc.getInputStream()));
+			boolean singlePlayer = Boolean.valueOf( getPayload(rdr.readLine()) );
+			
+			if(singlePlayer){
+				//launch a new single player:
+				System.out.println("new SP");
+				fs = new FIARServer(true);
+				fs.setSocket(true, incomingSoc);
 				new Thread(fs).start();
-				fs = new FIARServer();
-				fs.setSocket(true, soc2);
-				fs.promptSingle(true);
-				System.out.println("player [B] in spot 1; inverted");
-				inverted = true;
+			} else if(waiting) {
+				//put the new player into spot 2 of waiting game and start it:
+				System.out.println("P2 joined");
+				fs.setSocket(false, incomingSoc);
+				new Thread(fs).start();
+				waiting = false;
 			} else {
-				System.out.println("player [B] in spot 2 game init");
-				fs.promptSingle(false);
-				fs.setSocket(false, soc2);
-				new Thread(fs).start();
-			}
-						
+				//start a new game and put the new player in spot 1 and wait:
+				System.out.println("P1 joined");
+				fs = new FIARServer(false);
+				fs.setSocket(true, incomingSoc);
+				waiting = true;
+			}				
+			
+			//must close this, otherwise we'd have a leak for each connection
+			//rdr.close();
 			
 		}
 		
 		se.close();
 		
 	}
+
 	
 	public static void main(String[] args) throws Exception{
 		MatchServer ms = new MatchServer();

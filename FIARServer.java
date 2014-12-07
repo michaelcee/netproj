@@ -18,15 +18,19 @@ public class FIARServer extends FIARMsg implements Runnable{
 	BufferedReader[] rdr;
 	Thread singleWaiter;
 	private boolean single;
-	public FIARServer(){
-		rdr = new BufferedReader[2];
-		wtr = new BufferedWriter[2];
-		socs = new Socket[2];
+	public FIARServer(boolean singlePlayer){
+		single = singlePlayer;
+		int i = (singlePlayer) ? 1 : 2;
+		rdr = new BufferedReader[i];
+		wtr = new BufferedWriter[i];
+		socs = new Socket[i];
 	}
 	
 	public boolean isSingle(){
 		return single;
 	}
+	
+	
 	/**
 	 * set p1 or p2's sockets 
 	 * @param socket
@@ -51,10 +55,9 @@ public class FIARServer extends FIARMsg implements Runnable{
 	/**
 	 * 
 	 */
-	public void launchGame(){
+	private void launchMultiGame(){
 		try{
-			promptSingle(false);
-			singleWaiter.interrupt();
+			initComms(0);
 			initComms(1);
 			FIAR fiar = new FIAR();
 			
@@ -164,6 +167,8 @@ public class FIARServer extends FIARMsg implements Runnable{
 	private void launchSingle(){
 		try{
 			FIAR fiar = new FIAR();
+			
+			initComms(0);
 			
 			//tell the clients which player num they are:
 			write(0, createMsg(Prefix.INIT, ""+0));			
@@ -279,33 +284,6 @@ public class FIARServer extends FIARMsg implements Runnable{
 		
 	}
 	
-	public void promptSingle(boolean on){
-		
-		try {
-			initComms(0);
-			final BufferedReader r = rdr[0];
-			write(0, createMsg(Prefix.SINGLE_PLAYER, String.valueOf(on)));
-			singleWaiter = new Thread(new Runnable(){
-				public void run(){
-					try {
-						String resp = r.readLine();
-						if(getPrefix(resp) == Prefix.SINGLE_PLAYER){
-							single = true;
-							launchSingle();
-						}
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			});
-			singleWaiter.start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
 	private boolean newSingleGame(){
 		try{
 			if( (getPrefix(rdr[0].readLine()) == Prefix.NEW_GAME) ){
@@ -335,9 +313,9 @@ public class FIARServer extends FIARMsg implements Runnable{
 	@Override
 	public void run() {
 		if(single){
-			launchGame();	
+			launchSingle();
 		} else {
-			//do single player launch
+			launchMultiGame();	
 		}
 	}
 
