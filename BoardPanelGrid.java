@@ -2,28 +2,32 @@ package netproj;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.util.LinkedList;
+import java.util.concurrent.SynchronousQueue;
 
 import javax.swing.*;
 import javax.swing.border.Border;
  
 public class BoardPanelGrid extends JFrame {
-    //static final String gapList[] = {"5", "10", "15", "20"};
     final static int maxGap = 20;
-    //private JComboBox horGapComboBox;
-    //private JComboBox verGapComboBox;
+    
     private JButton connectButton = new JButton("Connect");
     private JButton newGameButton = new JButton("New Game");
     private JTextField hostBox = new JTextField("localhost");
-    private JCheckBox checkBox = new JCheckBox();
-    private GridLayout boardLayout = new GridLayout(10,10);
+    private JCheckBox checkBox = new JCheckBox("Single Player");
+    private Label msgLabel = new Label("Connect to a server to play");
     private Color[] colArr = {new Color(150, 160, 150), new Color(255,100,100), new Color(100,100,255)};
     private Color[] highArr = {new Color(150, 100, 100), new Color(100,100,150)};
     private Border[] borArr; //0 no high, 1 = high, 2 = winning run
     private Color hoverTemp;//a temp var for restoring color after mouse exit on hoverings
     private boolean[][] boolBoard = new boolean[10][10];
     private boolean keepBlinking;
+    private boolean connected;
     private SpotLabel[][] spots = new SpotLabel[10][10];
     private FlairManager flair = new FlairManager(255, 20);
+    
+    private LinkedList<String> msgQ = new LinkedList<String>();
+    private boolean msgWaiting;
     
     private int player = 0;//default, just in case there's trouble...
     
@@ -41,18 +45,32 @@ public class BoardPanelGrid extends JFrame {
     
     public void setPlayer(int playerNum){
     		player = playerNum;    	
+    		
     }
      
     
     public void addComponentsToPane(final Container pane) {
+    	final JPanel msgPanel = new JPanel();
+    	msgPanel.setBackground(new Color(255,255,255));
+        msgLabel.setBackground(new Color(255,255,255));
+        msgLabel.setForeground(new Color(0, 0, 200));
+        msgLabel.setAlignment(Label.CENTER);
+        msgLabel.setFont(new Font("Arial", 0, 16));
+        
+        msgPanel.add(msgLabel);
+    	
         final JPanel boardGrid = new JPanel();
+        GridLayout boardLayout = new GridLayout(10,10);
         boardGrid.setLayout(boardLayout);
         boardLayout.setHgap(5);
         boardLayout.setVgap(5);
         boardGrid.setBackground(new Color(100, 100, 100));
         boardGrid.setPreferredSize(new Dimension(412, 412));
         JPanel controls = new JPanel();
-        controls.setLayout(new GridLayout(2,3));
+        GridLayout controlsLayout = new GridLayout(2,3);
+        controlsLayout.setHgap(5);
+        controls.setLayout(controlsLayout);
+
         boardGrid.setPreferredSize(new Dimension((int)( (30+maxGap) * 10 + maxGap),
         		(int)( (30+maxGap) * 10 + maxGap)));
         
@@ -84,11 +102,8 @@ public class BoardPanelGrid extends JFrame {
 		        boardGrid.add(spot);
         	}
         }
-         
-        //Add controls to set up horizontal and vertical gaps
-        Label spLabel = new Label("Single player:");
-        spLabel.setAlignment(Label.RIGHT);
-        controls.add(spLabel);
+        //controls.add(msgLabel);
+        controls.add(new Label("[reserved space]"));
         controls.add(checkBox);
         newGameButton.setEnabled(false);
         controls.add(newGameButton);
@@ -97,11 +112,6 @@ public class BoardPanelGrid extends JFrame {
         controls.add(hostLabel);
         controls.add(hostBox);
 
-
-
-        
-        //controls.add(horGapComboBox);
-        //controls.add(verGapComboBox);
         controls.add(connectButton);
         connectButton.setEnabled(true);
     
@@ -120,9 +130,15 @@ public class BoardPanelGrid extends JFrame {
             	newGameButton.setEnabled(false);
             }
         });
+
+        pane.add(msgPanel, BorderLayout.NORTH);
+        pane.add(boardGrid, BorderLayout.CENTER);
+        pane.add(controls, BorderLayout.SOUTH);
+/*
         pane.add(boardGrid, BorderLayout.NORTH);
         pane.add(new JSeparator(), BorderLayout.CENTER);
         pane.add(controls, BorderLayout.SOUTH);
+*/
     }
     
     
@@ -150,12 +166,9 @@ public class BoardPanelGrid extends JFrame {
     }
 
     private void spotMouseClicked(MouseEvent evt) {//GEN-FIRST:event_jLabel100MouseReleased
-    	System.out.println("pressed!");
     	SpotLabel spot = (SpotLabel) evt.getSource();
     	if(!boolBoard[spot.x][spot.y]){
-    		System.out.println("valid bool board");
     		if(client.ready()){
-    			System.out.println("client ready");
     			if(client.sendMove(spot.x, spot.y)){
     				//success			    	
     			} else {
@@ -165,19 +178,41 @@ public class BoardPanelGrid extends JFrame {
     	}
     }
     
-    private void connect(){
-    	client.initComms(8484, hostBox.getText());
+    private void toggleControls(final boolean connected){
+    	SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+            	checkBox.setEnabled(!connected);
+        		hostBox.setEnabled(!connected);
+            	if(connected){
+            		connectButton.setText("Disconnect");
+            	} else {
+            		connectButton.setText("Connect");
+            	}
+            }
+        });
+    }
     	
-    	if(checkBox.isSelected()){
-    		client.reqSinglePlayer();
+    
+    private void connect(){
+    	if(!connected){
+	    	client.initComms(8484, hostBox.getText());
+	    	
+	    	if(checkBox.isSelected()){
+	    		client.reqSinglePlayer();
+	    	} else {
+	    		client.reqMultiPlayer();
+	    	}
+	    	
+	    	toggleControls(true);
+	    	
+	    	connected = true;
     	} else {
-    		client.reqMultiPlayer();
+    		setMsg("this doesn't do anything yet..");
     	}
     }
     /**
      * change a spot on the board.  this method is to be invoked externally by the attached
-     * FIARClient, on its socket-listening thread.  as a result, we have to 
-     * invoke on the event thread.  
+     * FIARClient, on its socket-listening thread.  
      * @param player
      * @param x
      * @param y
@@ -189,10 +224,87 @@ public class BoardPanelGrid extends JFrame {
             	SpotLabel spot = spots[x][y];
             	spot.setOwner(player, colArr[player + 1]);
             	boolBoard[spot.x][spot.y] = true;
-            	//System.out.println(spot.x + ", " + spot.y + " taken by player " + player);
             }
         });
     	
+    }
+    
+    private void writeMsg(final String msg){
+    	new Thread(new Runnable() {
+    		
+            public void run() {
+            	char[] msgArr = msg.toCharArray();
+            	final StringBuilder sb = new StringBuilder();
+            	
+            	for(int i = 0; i < msgArr.length; i+=5){
+            		for(int j = i; j < i+5; j++){
+            			if(j < msgArr.length)
+            				sb.append(msgArr[j]);
+            		}
+            		
+            		SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                        	msgLabel.setText(sb.toString());
+                        	pack();
+                        }
+                    });
+	        		try {
+						Thread.sleep(20);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+            	}//end large for-loop
+
+            }//end run
+
+    	}).start();
+    }
+    
+    private void printQueue(){
+    	
+    	msgWaiting = true;
+    	new Thread(new Runnable() {
+    		
+            public void run() {
+            	boolean keepGoing = true;
+             	while(keepGoing){
+            		synchronized(msgQ){
+            			writeMsg(msgQ.remove());            			
+            		}
+                	try {
+        				Thread.sleep(1500);
+        			} catch (InterruptedException e) {
+        				// TODO Auto-generated catch block
+        				e.printStackTrace();
+        			}
+                	synchronized(msgQ){
+                		if(msgQ.isEmpty())
+                			keepGoing = false;
+                	}
+                	
+            	}
+             	msgWaiting = false;
+            }//end run
+
+    	}).start();
+    	
+    }
+    
+    /**
+     * set the text of the message box at the top.  this should be called by
+     * FIARClient
+     * 
+     * @param msg - what to display in the box
+     */
+    public void setMsg(String msg){
+    		synchronized(msgQ){
+    			msgQ.add(msg);
+    			if(!msgWaiting){
+    				printQueue();
+    			}
+    			
+    		}
     }
     
     /**
@@ -325,7 +437,7 @@ public class BoardPanelGrid extends JFrame {
         });
     }
     
-    public void singlePlayer(final boolean on){
+    public void setConnectButton(final boolean on){
     	SwingUtilities.invokeLater(new Runnable() {
             public void run() {
             	connectButton.setEnabled(on);

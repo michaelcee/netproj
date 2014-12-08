@@ -48,7 +48,7 @@ public class FIAR extends FIARMsg {
 	public int[][] getBoard(){
 		int[][] retVal = new int[10][10];
 		for(int i = 0; i < 10; i++){
-			for(int j = 0; j < 10; i++){
+			for(int j = 0; j < 10; j++){
 				retVal[i][j] = board[i][j];
 			}
 		}

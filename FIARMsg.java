@@ -11,6 +11,9 @@ package netproj;
  */
 public abstract class FIARMsg {
 	protected enum Prefix{
+		ACK,			//utility prefix
+						//used for heartbeat-style checks
+		
 		INIT,			//the session has been initiated
 						//from server only
 						//payload: player number (0 or 1)

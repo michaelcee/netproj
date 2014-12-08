@@ -13,6 +13,7 @@ public class FIARClient extends FIARMsg {
 	private boolean ready;
 	private final BoardPanelGrid bpg;
 	private boolean keepGoing = true;
+	private int playerNum;
 	Socket soc;
 	BufferedWriter wtr;
 	BufferedReader rdr;
@@ -26,10 +27,9 @@ public class FIARClient extends FIARMsg {
 	private void processMsg(String msg){
 		switch(getPrefix(msg)){
 		case INIT:
-			bpg.setPlayer(Integer.valueOf(getPayload(msg)));
-			break;
-		case SINGLE_PLAYER: 
-			bpg.singlePlayer(Boolean.valueOf(getPayload(msg)));
+			playerNum = Integer.valueOf(getPayload(msg));
+			bpg.setPlayer(playerNum);
+			bpg.setMsg("Game session started.  You are Player " + (playerNum + 1));
 			break;
 		case GAME_OVER:{
 			String[] winningCoords = getPayload(msg).split(DELIM);
@@ -48,15 +48,29 @@ public class FIARClient extends FIARMsg {
 			break;
 		case NEW_GAME:
 			bpg.newGame();
+			bpg.setMsg("New game starting");
 			break;
 		case PROMPT:
+			bpg.setMsg("Your move");
 			ready = true;
 			break;
 		case SPOT_CHANGE:
+			String tickerMsg;
 			String[] payload = getPayload(msg).split(DELIM);
+			int player = Integer.valueOf(payload[0]);
+			if(player == playerNum)
+				tickerMsg = "You ";
+			else
+				tickerMsg = "Your opponent ";
+			tickerMsg += "took spot: " + payload[1];
+			
 			int[] coords = getCoords(payload[1]);
-			bpg.changeSpot(Integer.valueOf(payload[0]), coords[0], coords[1]);
+			bpg.changeSpot(player, coords[0], coords[1]);
+			bpg.setMsg(tickerMsg);
 			break;
+		case ACK:
+			System.out.println(">ACK from server");
+			respAck();
 		default:
 			break;
 			
@@ -81,7 +95,7 @@ public class FIARClient extends FIARMsg {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		System.out.println("CONNECTED TO SERVER");
+		bpg.setMsg("connected to server");
     	new Thread( new Runnable(){
     		public void run(){
 				//just keep listening and process messages as they come
@@ -126,11 +140,24 @@ public class FIARClient extends FIARMsg {
 		return true;
 	}
 	
+	private void respAck(){
+		try{
+			wtr.write(createMsg(Prefix.ACK, ""));
+			wtr.newLine();
+			wtr.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			
+		}
+	}
+	
 	void reqSinglePlayer(){
 		try {
 			wtr.write(createMsg(Prefix.SINGLE_PLAYER, "true"));
 			wtr.newLine();
 			wtr.flush();
+			bpg.setMsg("Starting single player");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -142,6 +169,7 @@ public class FIARClient extends FIARMsg {
 			wtr.write(createMsg(Prefix.SINGLE_PLAYER, "false"));
 			wtr.newLine();
 			wtr.flush();
+			bpg.setMsg("Waiting for oponent");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
