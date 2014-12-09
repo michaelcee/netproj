@@ -1,4 +1,5 @@
 package netproj;
+import java.util.Random;
 
 public class FIARRobot {
 
@@ -7,9 +8,33 @@ public class FIARRobot {
 
 	}
 	
-	public static int[] getMove(int[][] board){
+	public static int[] getMove(int[][] board, int x, int y){
 		
-		return null;
+	Random rnd = new Random();
+	int [] nextMove = new int [2];
+	int robotMoveX = 0; 
+	int robotMoveY = 0; 
+	boolean invalid = true;
+	while(invalid)
+	{	
+	  robotMoveX = rnd.nextInt(3)-1+x;
+	  robotMoveY = rnd.nextInt(3)-1+y;
+	  if( (robotMoveX >9 || robotMoveX<0) 
+			  || (robotMoveY >9 || robotMoveY<0) 
+			  || (board [robotMoveX][robotMoveY]==1))
+		  invalid=false;
 	}
-
+	
+	nextMove[0] = robotMoveX;
+	nextMove[1] = robotMoveY;
+	
+	
+		return nextMove;
+	}
+		
 }
+	
+	
+	
+	
+

@@ -175,6 +175,7 @@ public class FIARServer extends FIARMsg implements Runnable{
 			
 			boolean p1 = true;//if it's p1's turn
 			boolean newGame = true;
+			int[] prevMove;
 			while(newGame){
 				int curPlayer = (p1) ? 0 : 1;
 				//send out new game notification

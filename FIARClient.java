@@ -19,7 +19,6 @@ public class FIARClient extends FIARMsg {
 	BufferedReader rdr;
 	
 	public FIARClient(){
-	
 		bpg = new BoardPanelGrid("Five in a Row", this);
 		bpg.launch();
 	}
@@ -43,6 +42,7 @@ public class FIARClient extends FIARMsg {
 				bpg.endGame(coords);
 			} else {
 				bpg.endGameDraw();
+				bpg.setMsg("Game over - no moves left.  No winner.");
 			}
 		}//using brackets to control var scope
 			break;

@@ -9,8 +9,12 @@ import java.net.*;
 
 
 /**
+ * The main entry point to the server application.  This class serves as a simple
+ * matchmaking service.  Clients connects and request single or multiplayer.  The
+ * server then puts them into the relevant game and goes back to waiting for a new
+ * client.
  * 
- * @author MIKE
+ * @author Mike Caron
  *
  */
 public class MatchServer extends FIARMsg{	
@@ -18,7 +22,12 @@ public class MatchServer extends FIARMsg{
 	public MatchServer(){
 		
 	}
-	
+	/**
+	 * begins server matchmaking.  The server will listen indefinitely until
+	 * shut down externally.
+	 * 
+	 * @throws IOException
+	 */
 	private void startServer() throws IOException{
 		int port = 8484;
 		ServerSocket se = new ServerSocket(port);
@@ -73,7 +82,14 @@ public class MatchServer extends FIARMsg{
 		se.close();
 		
 	}
-	
+	/**
+	 * tests the given socket to see if there's still a connection.  this method
+	 * creates a buffered reader, sends an ACK message and then waits for a response
+	 * if the client does not ACK back or there's an issue, return false.
+	 * 
+	 * @param soc - socket to test
+	 * @return whether or not we have a cooperative client
+	 */
 	private boolean testSocket(Socket soc){
 		try{
 			BufferedWriter wtr= new BufferedWriter(new OutputStreamWriter(
@@ -90,12 +106,16 @@ public class MatchServer extends FIARMsg{
 			return false;
 		}
 		return false;
-	}
+	}//end testSocket
 
-	
+	/**
+	 * Launch point of server side application.
+	 * @param args
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception{
 		MatchServer ms = new MatchServer();
 		ms.startServer();
 	}//end Main	
 	
-}//end Caron_server
+}//end MatchServer
