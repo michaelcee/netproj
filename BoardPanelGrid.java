@@ -2,7 +2,14 @@ package netproj;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.border.Border;
 
@@ -35,6 +42,7 @@ public class BoardPanelGrid extends JFrame {
     final static int maxGap = 20;    
     private JButton connectButton = new JButton("Connect");
     private JButton newGameButton = new JButton("New Game");
+    private JButton chatButton = new JButton("Connect to chat");
     private JTextField hostBox = new JTextField("localhost");
     private JCheckBox checkBox = new JCheckBox("Single Player");
     private Label msgLabel = new Label("Connect to a server to play");
@@ -156,7 +164,8 @@ public class BoardPanelGrid extends JFrame {
         GridLayout controlsLayout = new GridLayout(2,3);
         controlsLayout.setHgap(5);
         controls.setLayout(controlsLayout);
-        controls.add(new Label("[reserved space]"));
+        controls.add(chatButton);
+        chatButton.setEnabled(true);
         controls.add(checkBox);
         newGameButton.setEnabled(false);
         controls.add(newGameButton);
@@ -171,6 +180,18 @@ public class BoardPanelGrid extends JFrame {
         connectButton.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
             	connect();
+            }
+        });
+        
+        chatButton.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent e){
+                ChatClient cClient = new ChatClient();
+                try {
+                    cClient.chatinit(hostBox.getText());
+                } catch (Exception ex) {
+                    Logger.getLogger(BoardPanelGrid.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
             }
         });
         
@@ -739,5 +760,6 @@ class FlairManager{
             }
         });
 	}
+   
 	
 }
