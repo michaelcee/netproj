@@ -6,41 +6,71 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
+/**
+ * This class provides communications services to the UI.  It also the main
+ * entry point into the client-side application.  The UI is launched and this
+ * class waits for connection initialization using the fields from the UI.  Once
+ * a request to connect has been made, a new thread is started to listen for
+ * messages and they are processed accordingly.  
+ *
+ */
 public class FIARClient extends FIARMsg {
-	/** a lock on transmitting messages from player clicks */
+	/** a lock on transmitting messages from player clicks unless we're ready */
 	private boolean ready;
+	/** an instance of our UI */
 	private final BoardPanelGrid bpg;
+	//more or less a constant:
 	private boolean keepGoing = true;
+	/**which player num, given by the server, this client is */
 	private int playerNum;
+	//resources for communications:
 	Socket soc;
 	BufferedWriter wtr;
 	BufferedReader rdr;
 	
 	public FIARClient(){
+		//create and launch GUI
 		bpg = new BoardPanelGrid("Five in a Row", this);
 		bpg.launch();
 	}
 	
+	/**
+	 * reads messages from the server and handles them as necessary.  like the
+	 * server counterpart, the FIARMsg Prefix is used as a switch statement to
+	 * determine what should be done with the information.  in almost all cases,
+	 * the UI is updated to notify the player.
+	 * @param msg
+	 */
 	private void processMsg(String msg){
 		switch(getPrefix(msg)){
 		case INIT:
+			//initializes the game and lets the player know which number they are
 			playerNum = Integer.valueOf(getPayload(msg));
 			bpg.setPlayer(playerNum);
 			bpg.setMsg("Game session started.  You are Player " + (playerNum + 1));
 			break;
 		case GAME_OVER:{
+			//game is over.  if there is no payload to the message, it means the
+			//game is a draw.  
+			
+			//the payload looks like 4,5-4,6-4,7-4,8-4,9  ('-' is the DELIM)
+			//so split it to {"4,5", "4,6", "4,7", "4,8", "4,9"}
 			String[] winningCoords = getPayload(msg).split(DELIM);
 			if(winningCoords.length != 1){
+				//create a list of ordered pairs to store the winning run of spots
 				int[][] coords = new int[winningCoords.length][2];
+				
+				//fill the list:
 				for(int i = 0; i < winningCoords.length;i++){
 					int[] pair = getCoords(winningCoords[i]);
 					coords[i][0] = pair[0];
 					coords[i][1] = pair[1];
 				}
+				//send the list of winning spots to the UI:
 				bpg.endGame(coords);
 			} else {
+				//it's a draw, update ui
 				bpg.endGameDraw();
 				bpg.setMsg("Game over - no moves left.  No winner.");
 			}
@@ -51,24 +81,36 @@ public class FIARClient extends FIARMsg {
 			bpg.setMsg("New game starting");
 			break;
 		case PROMPT:
+			//if clients don't receive a PROMPT message, no clicks will be 
+			//transmitted to server.  ready must = true to send a move request
 			bpg.setMsg("Your move");
 			ready = true;
 			break;
 		case SPOT_CHANGE:
-			String tickerMsg;
+			//a spot has changed its owner.  update the UI
+			String tickerMsg;	//message to shown in the UI ticker
+			
+			//the payload of SPOT_CHANGE is <player num>-<spot x,y>, so we need
+			//to split it one more time:
 			String[] payload = getPayload(msg).split(DELIM);
+			
+			//payload[0] IDs the player
 			int player = Integer.valueOf(payload[0]);
 			if(player == playerNum)
 				tickerMsg = "You ";
 			else
-				tickerMsg = "Your opponent ";
+				tickerMsg = "Opponent ";
+			//payload[1] is the "x,y" ordered pair
 			tickerMsg += "took spot: " + payload[1];
 			
 			int[] coords = getCoords(payload[1]);
+			
+			//update UI:
 			bpg.changeSpot(player, coords[0], coords[1]);
 			bpg.setMsg(tickerMsg);
 			break;
 		case ACK:
+			//server heartbeat-style message.  respond with an ACK back
 			System.out.println(">ACK from server");
 			respAck();
 		default:
@@ -118,7 +160,8 @@ public class FIARClient extends FIARMsg {
 	
 	
 	/**
-	 * 
+	 * send a move to the server and flip the "ready" flag.  to send another move,
+	 * a "PROMPT" message will have to be received from the server
 	 * @param x
 	 * @param y
 	 * @return
@@ -139,7 +182,9 @@ public class FIARClient extends FIARMsg {
 		
 		return true;
 	}
-	
+	/**
+	 * convenience method to respond to an ACK request back to the server
+	 */
 	private void respAck(){
 		try{
 			wtr.write(createMsg(Prefix.ACK, ""));
@@ -152,6 +197,14 @@ public class FIARClient extends FIARMsg {
 		}
 	}
 	
+	
+	/**
+	 * send a message requesting single player mode.  this or reqMultiPlayer 
+	 * is intended to be called immediately after establishing connection.
+	 * 
+	 * future work would be to refactor this an reqMultiPlayer into a single
+	 * method which takes a boolean argument
+	 */
 	void reqSinglePlayer(){
 		try {
 			wtr.write(createMsg(Prefix.SINGLE_PLAYER, "true"));
@@ -163,7 +216,13 @@ public class FIARClient extends FIARMsg {
 			e.printStackTrace();
 		}
 	}
-	
+	/**
+	 * send a message requesting mutli player mode.  this or reqSinglePlayer 
+	 * is intended to be called immediately after establishing connection.
+	 * 
+	 * future work would be to refactor this an reqSinglePlayer into a single
+	 * method which takes a boolean argument
+	 */
 	void reqMultiPlayer(){
 		try {
 			wtr.write(createMsg(Prefix.SINGLE_PLAYER, "false"));
@@ -176,17 +235,10 @@ public class FIARClient extends FIARMsg {
 		}
 	}
 	
-	String getMsg(){
-		try {
-			return rdr.readLine();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return null;
-	}
-	
+	/**
+	 * inform the server whether or not we want to play another game
+	 * @param yes
+	 */
 	void requestNew(boolean yes){
 		try {
 			if(yes)
@@ -218,7 +270,12 @@ public class FIARClient extends FIARMsg {
 		return ready;
 	}
 	
-
+	/**
+	 * main entry point.  Port num is hardwired and the host is specified in the UI
+	 * so there's no need for arguments here.  however, future work could entail
+	 * dynamic port settings but that's not the case at the moment
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		
 		FIARClient client = new FIARClient();

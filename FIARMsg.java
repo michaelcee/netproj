@@ -6,9 +6,16 @@ package netproj;
  * 
  * this allows easy access to these methods and also protects the 
  * communication scheme from whatever it is we're supposed to protect stuff from
- *
+ *	
+ * messages are constructed as a PREFIX_PAYLOAD
  */
 public abstract class FIARMsg {
+	
+	/**
+	 * all messages have a prefix.  future prefixes can be added and the switch
+	 * statements expanded if necessary.
+	 *
+	 */
 	protected enum Prefix{
 		ACK,			//utility prefix
 						//used for heartbeat-style checks
@@ -39,6 +46,10 @@ public abstract class FIARMsg {
 						//payload: none
 	}
 	
+	/**
+	 * the result of a move.  this is used server-side exclusively for now 
+	 *
+	 */
 	protected enum MoveResult{
 		VALID,
 		WINNING_MOVE,
@@ -47,15 +58,36 @@ public abstract class FIARMsg {
 		ERROR
 	}
 	
+	/**universal delimiter*/
 	protected static final String DELIM = "-";
 	
+	/**
+	 * gets the prefix of the given message
+	 * @param msg
+	 * @return
+	 */
 	protected static Prefix getPrefix(String msg){
-			return Prefix.valueOf(msg.split(DELIM, 2)[0]);
+		//split at the delimiter and return the first element from the array:
+		return Prefix.valueOf(msg.split(DELIM, 2)[0]);
 	}
 	
+	/**
+	 * gets the payload of the given message
+	 * @param msg
+	 * @return
+	 */
 	protected static String getPayload(String msg){
+		//split at the delimiter and return the second element from the array:
 		return msg.split(DELIM, 2)[1];
 	}
+	
+	
+	/**
+	 * create a message from the given Prefix and String
+	 * @param prefix
+	 * @param payload
+	 * @return
+	 */
 	protected static String createMsg(Prefix prefix, String payload){
 		return prefix + DELIM + payload;
 	}

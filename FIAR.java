@@ -1,8 +1,5 @@
 package netproj;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 /**
  * this class represents an instance of the game 5 in a row.  the game board,
  * by default, is 10 by 10 spaces and is stored in a matrix of ints.
@@ -14,21 +11,22 @@ import java.util.Arrays;
  * right has coordinates (9, 9).  However, the matrix itself is counterintuitively 
  * accessed using board[y][x] due to the nature of 2d arrays.
  * 
- * instances are reused for successive games
+ * instances are reused for successive games but no data is preserved.  this 
+ * class can be thought of as an intelligent real life game board that 
+ * evaluates player moves but does not enforce the rules of the game; that is 
+ * done by FIARServer, the other half of the implementation of "Five in a Row"
  *
  */
 
+//extend FIARMsg for access to communication protocols
 public class FIAR extends FIARMsg {
 	
-	private int[][] board;
-	private int moves;
-	String winningRun; //format: "x0,y0-x1,y1" 	
-	public FIAR(){
-		
-	}
-	
+	private int[][] board; 	//2D array of the game board itself
+	private int moves;		//if moves >= 100, the board is full and it's a draw
+	String winningRun; 		//format: "x0,y0-x1,y1" 	
+
 	/**
-	 * init a new game
+	 * init a new game, reset vars
 	 */
 	public void newGame(){
 		board = new int[10][10];	
@@ -61,6 +59,8 @@ public class FIAR extends FIARMsg {
 	/**
 	 * returns the winningRun string. 
 	 * the string is formated as x0,y0[DELIM]x1,y1
+	 * 
+	 * DELIM is defined in FIARMsg
 	 * @return
 	 */
 	public String getWinningRun(){
@@ -68,6 +68,15 @@ public class FIAR extends FIARMsg {
 	}
 	
 	/**
+	 * the act of making a play on the game board.  the choice is evaluated and
+	 * a FIARMsg.MoveResult enum is returned.
+	 * 
+	 * moves can be: 
+	 * 	ERROR - specified spot is off the 10x10 board, such as (-4, 15)
+	 * 	INVALID - spot is already taken
+	 * 	WINNING_MOVE - this move is a five-in-a-row formation
+	 * 	DRAW_MOVE - this is the 100th move and there's no winner.  ergo, a draw
+	 * 	VALID - the move is valid and the game continues
 	 * 
 	 * @param player 0 for player 1, 1 for player 2
 	 * @param x pos
@@ -93,7 +102,7 @@ public class FIAR extends FIARMsg {
 			return MoveResult.WINNING_MOVE;
 			
 		//check if we've run out of spots:	
-		} else if (moves == 100) {
+		} else if (moves >= 100) {
 			return MoveResult.DRAW_MOVE;
 			
 		//otherwise, it's valid and game continues:	
@@ -114,7 +123,7 @@ public class FIAR extends FIARMsg {
 	 * it for 5 in a row.  
 	 * @param x
 	 * @param y
-	 * @return
+	 * @return - whether or not this spot is part of a five-in-a-row
 	 */
 	private boolean evalSpot(int x, int y){
 	/**
