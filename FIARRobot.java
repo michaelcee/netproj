@@ -19,9 +19,9 @@ public class FIARRobot {
 	{	
 	  robotMoveX = rnd.nextInt(3)-1+x;
 	  robotMoveY = rnd.nextInt(3)-1+y;
-	  if( (robotMoveX >9 || robotMoveX<0) 
-			  || (robotMoveY >9 || robotMoveY<0) 
-			  || (board [robotMoveX][robotMoveY]==1))
+	  if( ((robotMoveX <=9 && robotMoveX>=0) 
+			  &&(robotMoveY <=9 && robotMoveY>=0)) 
+              && (board [robotMoveY][robotMoveX]==0))
 		  invalid=false;
 	}
 	

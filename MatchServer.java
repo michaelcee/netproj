@@ -13,8 +13,6 @@ import java.net.*;
  * matchmaking service.  Clients connects and request single or multiplayer.  The
  * server then puts them into the relevant game and goes back to waiting for a new
  * client.
- * 
- * @author Mike Caron
  *
  */
 public class MatchServer extends FIARMsg{	

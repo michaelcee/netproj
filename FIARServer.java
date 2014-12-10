@@ -73,7 +73,7 @@ public class FIARServer extends FIARMsg implements Runnable{
 				//send out new game notifications
 				for(int i = 0; i < 2; i++){
 					write(i, createMsg(Prefix.NEW_GAME, curPlayer + ""));
-					fiar.newGame( p1 );
+					fiar.newGame();
 				}
 				
 				boolean keepGoing = true;
@@ -82,10 +82,12 @@ public class FIARServer extends FIARMsg implements Runnable{
 					//whatever it is, we probably don't want to care about it
 					while(rdr[curPlayer].ready())
 						rdr[curPlayer].readLine();
+
 					write(curPlayer, createMsg(Prefix.PROMPT, ""));
 					String m = rdr[curPlayer].readLine();
 					switch(getPrefix(m)){
 						case GAME_OVER:
+							
 							break;
 						case NEW_GAME:
 							break;
@@ -175,12 +177,12 @@ public class FIARServer extends FIARMsg implements Runnable{
 			
 			boolean p1 = true;//if it's p1's turn
 			boolean newGame = true;
-			int[] prevMove;
+			int[] prevMove = null;
 			while(newGame){
 				int curPlayer = (p1) ? 0 : 1;
 				//send out new game notification
 					write(0, createMsg(Prefix.NEW_GAME, curPlayer + ""));
-					fiar.newGame( p1 );
+					fiar.newGame();
 
 				boolean keepGoing = true;
 				while(keepGoing){
@@ -193,7 +195,7 @@ public class FIARServer extends FIARMsg implements Runnable{
 					if(curPlayer == 0){
 						m = rdr[0].readLine();
 					} else {
-						int[] xy = FIARRobot.getMove(fiar.getBoard());
+						int[] xy = FIARRobot.getMove(fiar.getBoard(), prevMove[0], prevMove[1]);
 						m = createMsg(Prefix.SPOT_CHANGE, makeCoords(
 						 		xy[0], xy[1]));
 					}
@@ -206,6 +208,7 @@ public class FIARServer extends FIARMsg implements Runnable{
 							break;
 						case SPOT_CHANGE:
 							int[] coords = getCoords(getPayload(m));
+							prevMove = coords;
 							switch( fiar.makePlay(curPlayer, coords[0], coords[1]) ){
 							case VALID:
 								//update each player then switch active player

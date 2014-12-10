@@ -6,7 +6,6 @@ package netproj;
  * 
  * this allows easy access to these methods and also protects the 
  * communication scheme from whatever it is we're supposed to protect stuff from
- * @author MIKE
  *
  */
 public abstract class FIARMsg {

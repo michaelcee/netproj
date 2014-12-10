@@ -506,7 +506,7 @@ class FlairManager{
 	 * @param whiteVal
 	 * @param frames
 	 */
-	public FlairManager(int whiteVal, int frames){
+	FlairManager(int whiteVal, int frames){
 		int velocity = whiteVal / frames;
 		colors = new Border[frames];
 		

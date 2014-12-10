@@ -15,7 +15,6 @@ import java.util.Arrays;
  * accessed using board[y][x] due to the nature of 2d arrays.
  * 
  * instances are reused for successive games
- * @author MIKE
  *
  */
 
@@ -30,9 +29,8 @@ public class FIAR extends FIARMsg {
 	
 	/**
 	 * init a new game
-	 * @param p1 - is player 1 making the first move?
 	 */
-	public void newGame(boolean p1){
+	public void newGame(){
 		board = new int[10][10];	
 		moves = 0;
 		winningRun = null;
