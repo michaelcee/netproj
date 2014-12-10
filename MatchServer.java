@@ -27,6 +27,7 @@ public class MatchServer extends FIARMsg{
 	 * @throws IOException
 	 */
 	private void startServer() throws IOException{
+		ChatServer.start();
 		int port = 8484;
 		ServerSocket se = new ServerSocket(port);
 		boolean keepGoing = true;
@@ -111,9 +112,14 @@ public class MatchServer extends FIARMsg{
 	 * @param args
 	 * @throws Exception
 	 */
-	public static void main(String[] args) throws Exception{
+	public static void main(String[] args){
 		MatchServer ms = new MatchServer();
-		ms.startServer();
+		try {
+			ms.startServer();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}//end Main	
 	
 }//end MatchServer

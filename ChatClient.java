@@ -129,7 +129,7 @@ public class ChatClient implements Runnable {
     public void chatinit(String address) throws Exception {
         ChatClient client = new ChatClient();
         client.setServerAddess(address);
-        client.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        client.frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         client.frame.setVisible(true);
         new Thread(client).start();
     }

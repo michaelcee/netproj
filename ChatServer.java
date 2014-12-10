@@ -8,6 +8,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
 
+import javax.swing.border.Border;
+
 /*
 multithreaded chat room server seperate from the game server. This chat room will
 contain all players playing all games, not just the two. Originally the intent was
@@ -48,6 +50,40 @@ public class ChatServer {
         } finally {
             listener.close();
         }
+    }
+    
+    /**
+     * same as main, but to be invoked externally
+     * @param args
+     * @throws IOException 
+     * @throws Exception
+     */
+    public static void start() throws IOException {
+        System.out.println("The chat server is running.");
+        final ServerSocket listener = new ServerSocket(PORT);
+        new Thread(new Runnable(){
+			
+			public void run(){
+			    try {
+		            while (true) {
+		                new Handler(listener.accept()).start();
+		            }
+		        } catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} finally {
+		            try {
+						listener.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+		        }
+	
+						
+			}
+		}).start();
+    
     }
 
     /**
