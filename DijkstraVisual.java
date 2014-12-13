@@ -1,26 +1,29 @@
 package dijvis;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Random;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 
 
+@SuppressWarnings("serial")
 public class DijkstraVisual extends JFrame {
 	
-	//initialize some UI components:
-    final static int maxGap = 20;    
+	//initialize some UI components:   
     public final static Color COLOR_PATH = new Color(100,100,255);
     public final static Color COLOR_NEIGHBOR = new Color(255,100,100);
     public final static Color COLOR_REJECT = new Color(150, 160, 150);
     private static String dim = "20";
     private static String cost = "10";
     private static String chance = ".4";
-    private int boardSize;//the board will always be sized via a single number
+    private int boardSizeI;//the board will always be sized via a single number
+    private int boardSizeJ;//...but we save the second dimension for convenience
+    private JCheckBox checkBox = new JCheckBox("Double width");
     private JButton resizeButton = new JButton("Redim Board");
     private JButton rerollButton = new JButton("Reroll");
     private JTextField costField = new JTextField(cost);
@@ -37,10 +40,6 @@ public class DijkstraVisual extends JFrame {
     private Color hoverTemp;
     /**the board itself is composed of 100 NodeLabels*/
     private NodeLabel[][] nodes;// = new NodeLabel[20][20];
-    /**for the fancy mouse-fade effect*/
-    private LinkedList<String> msgQ = new LinkedList<String>();
-    /**if there's a message waiting in the msgQ*/
-    private boolean msgWaiting;
     private NodeLabel sourceNode;//which node we've clicked on
     private NodeLabel prevNode;
     private final DijkstraVisual instance;
@@ -54,7 +53,7 @@ public class DijkstraVisual extends JFrame {
      */
     public static void main(String[] args){
 
-    	DijkstraVisual bpg = new DijkstraVisual("Dijkstra Visualizer", 20);
+    	DijkstraVisual bpg = new DijkstraVisual("Dijkstra Visualizer", 20, false);
     	bpg.launch();
     }
     
@@ -64,7 +63,7 @@ public class DijkstraVisual extends JFrame {
      * @param name
      * @param client
      */
-    public DijkstraVisual(String name, int size) {
+    public DijkstraVisual(String name, int size, boolean doubleWide) {
     	super(name);    
         instance = this;    	
     	borArr = new Border[3];
@@ -73,7 +72,10 @@ public class DijkstraVisual extends JFrame {
     	borArr[1] = BorderFactory.createLineBorder(new Color(255, 255, 255));
     	borArr[2] = BorderFactory.createLineBorder(Color.RED);
         setResizable(true);
-        initBoard(size);
+        initBoard(size, doubleWide);
+        if(doubleWide)
+        	checkBox.setSelected(true);
+        
     }
     
 
@@ -111,11 +113,13 @@ public class DijkstraVisual extends JFrame {
         
     }
     
-    private void initBoard(int size){
-    	boardSize = size;
-    	nodes = new NodeLabel[boardSize][boardSize];
-    	for(int i = 0; i < boardSize; i++){
-        	for(int j = 0; j < boardSize; j++){
+    private void initBoard(int size, boolean doubleWide){
+    	boardSizeI = size;
+    	boardSizeJ = doubleWide ? size * 2: size;
+    	
+    	nodes = new NodeLabel[boardSizeJ][boardSizeI];
+    	for(int i = 0; i < boardSizeI; i++){
+        	for(int j = 0; j < boardSizeJ; j++){
 		        NodeLabel spot = new NodeLabel(j, i);
 		        nodes[j][i] = spot;
 		        spot.addMouseListener(new MouseAdapter() {
@@ -148,19 +152,19 @@ public class DijkstraVisual extends JFrame {
     	
         //create the game board:
         boardGrid = new JPanel();
-        GridLayout boardLayout = new GridLayout(boardSize,boardSize);
+        GridLayout boardLayout = new GridLayout(boardSizeI,boardSizeJ);
         boardGrid.setLayout(boardLayout);
         boardLayout.setHgap(1);
         boardLayout.setVgap(1);
         boardGrid.setBackground(new Color(100, 100, 100));
-        boardGrid.setPreferredSize(new Dimension(412, 412));
-        boardGrid.setPreferredSize(new Dimension((int)( (30+maxGap) * 10 + maxGap),
-        		(int)( (30+maxGap) * 10 + maxGap)));
+        int pSize = doubleWide ? 1040 : 520;
+        boardGrid.setPreferredSize(new Dimension(pSize, 520));
+
         randomizeBoard(Integer.valueOf(costField.getText()), 
         		Double.valueOf(chanceField.getText()));
 
-        for(int i = 0; i < boardSize; i++){
-        	for(int j = 0; j < boardSize; j++){
+        for(int i = 0; i < boardSizeI; i++){
+        	for(int j = 0; j < boardSizeJ; j++){
 		        boardGrid.add(nodes[j][i]);
         	}
         }
@@ -212,7 +216,7 @@ public class DijkstraVisual extends JFrame {
         //r1,c3
         JPanel chancePanel = new JPanel();
         chancePanel.setBackground(Color.WHITE);
-        JLabel connectLabel = new JLabel("chance:");
+        JLabel connectLabel = new JLabel("Chance:");
         connectLabel.setHorizontalAlignment(JLabel.RIGHT);
         chancePanel.add(connectLabel);
         chanceField.setPreferredSize(new Dimension(40, 20));
@@ -231,16 +235,15 @@ public class DijkstraVisual extends JFrame {
         controls.add(res1);
         
         //r2,c2
-        JLabel res2 = new JLabel("   ");
-        res2.setHorizontalAlignment(JLabel.RIGHT);
-        res2.setBackground(Color.WHITE);
-        res2.setOpaque(true);
-        controls.add(res2);
+        checkBox.setHorizontalAlignment(JLabel.RIGHT);
+        checkBox.setBackground(Color.WHITE);
+        checkBox.setOpaque(true);
+        controls.add(checkBox);
         
         //r2,c3
         JPanel sizePanel = new JPanel();
         sizePanel.setBackground(Color.WHITE);
-        JLabel sizeLabel = new JLabel("board size:");
+        JLabel sizeLabel = new JLabel("Board size:");
         sizeLabel.setHorizontalAlignment(JLabel.RIGHT);
         sizePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
         
@@ -261,7 +264,7 @@ public class DijkstraVisual extends JFrame {
                 		dim = sizeField.getText();
                 		cost = costField.getText();
                 		chance = chanceField.getText();
-                		DijkstraVisual bpg = new DijkstraVisual("Dijkstra Visualizer", Integer.valueOf(dim));
+                		DijkstraVisual bpg = new DijkstraVisual("Dijkstra Visualizer", Integer.valueOf(dim), checkBox.isSelected());
                     	bpg.launch();
                 	}
                 });	
@@ -273,7 +276,7 @@ public class DijkstraVisual extends JFrame {
             	if(null != sourceNode)
             		toggleSourceNode(false);
             	sourceNode = null;
-            	for(int i = 0; i < boardSize; i++){for(int j = 0; j < boardSize; j++){
+            	for(int i = 0; i < boardSizeI; i++){for(int j = 0; j < boardSizeJ; j++){
         			nodes[j][i].resetNeighborhood();
         			nodes[j][i].finalCost = 0;
             	}}
@@ -352,7 +355,7 @@ public class DijkstraVisual extends JFrame {
 	    	sourceNode = node;
 	    	toggleSourceNode(true);
 	    	doDijkstra(node);
-	    	node.setBackground(DijkstraVisual.COLOR_PATH);
+    		node.setBackground(COLOR_PATH);
 	    	node.setText("0");
     	}
     }
@@ -378,113 +381,7 @@ public class DijkstraVisual extends JFrame {
     		sourceNode.setBorder(borArr[0]);
     }
     
-    /**
-     * set the text of the message box at the top.  this should be called by
-     * FIARClient.
-     * 
-     * a synchronized queue is used to display messages.  each message is drawn
-     * 5 characters at a time, 20ms apart.  the message is then held in the
-     * text box at the top for 1.5 seconds.  messages that arrive during this
-     * draw and hold process are placed in the queue 
-     * 
-     * @param msg - what to display in the box
-     */
-    public void setMsg(String msg){
-    	//we must synchronize access to msgQ to be sure we don't modify the list
-    	//while trying to read it
-		synchronized(msgQ){
-			msgQ.add(msg);
-			//if there are no messages waiting, we need to initialize printing
-			if(!msgWaiting){
-				printQueue();
-			}
-			
-		}
-    }
     
-    /**
-     * prints the contents of the msgQ.  if a message is added to the queue during
-     * the display period (takes approximately 1.75 seconds per message), print
-     * queue will print it automatically and separate invocation of printQueue
-     * is NOT NEEDED 
-     */
-    private void printQueue(){
-    	
-    	//we've begun printing so we're busy:
-    	msgWaiting = true;
-    	new Thread(new Runnable() {
-    		
-    		//this thread will run until there are no more messages to print
-            public void run() {
-            	boolean keepGoing = true;
-             	while(keepGoing){
-             		//must synchronize on msgQ to prevent concurrency problems
-            		synchronized(msgQ){
-            			writeMsg(msgQ.remove());            			
-            		}
-                	try {
-                		//wait a second and a half before continuing
-        				Thread.sleep(500);
-        			} catch (InterruptedException e) {
-        				// TODO Auto-generated catch block
-        				e.printStackTrace();
-        			}
-
-                	synchronized(msgQ){
-                		if(msgQ.isEmpty()){
-                			keepGoing = false;
-                     		msgWaiting = false;
-                		}
-                	}
-            	}//end of keepgoing
-
-            }//end run
-
-    	}).start();
-    	
-    }
-    
-    /**
-     * writes a message to the ticker in 5 character spurts, 20ms apart.  
-     * @param msg
-     */
-    private void writeMsg(final String msg){
-    	new Thread(new Runnable() {
-    		
-            public void run() {
-            	
-            	char[] msgArr = msg.toCharArray();
-            	final StringBuilder sb = new StringBuilder();
-            	
-            	//go up the message, 5 characters at a time and add them to the
-            	//string to be displayed.  
-            	for(int i = 0; i < msgArr.length; i+=5){
-            		for(int j = i; j < i+5; j++){
-            			if(j < msgArr.length)//only if j isn't out of bounds
-            				sb.append(msgArr[j]);
-            		}
-            		
-            		SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                        	msgLabel.setText(sb.toString());
-                        	//we need to call pack in order to resize msgLabel
-                        	//to the length of the text:
-                        	pack();
-                        }
-                    });
-	        		try {
-	        			//do it 20ms at a time
-						Thread.sleep(20);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-            	}//end large for-loop
-
-            }//end run
-
-    	}).start();
-    }
 
     /**
      * 
@@ -496,18 +393,18 @@ public class DijkstraVisual extends JFrame {
 
 		//iterate through the board and determine connections between adjacent
 		//nodes.  also, I'm seeing if I like this for loop style
-		for(int i = 0; i < boardSize; i++){for(int j = 0; j < boardSize; j++){
+		for(int i = 0; i < boardSizeI; i++){for(int j = 0; j < boardSizeJ; j++){
 			//iterate through the up to 8 adjacent nodes.  
 			//this is going to get confusing..
 			for(int k = -1;k < 2; k++){
 				for(int m = -1; m < 2; m++)
 				
         		if( (m|k) != 0 && chance > r.nextDouble() && //if they're not both zero
-        				i + k >=0 && i + k < boardSize && //not out of bounds
-        				j + m >=0 && j +m < boardSize){
+        				i + k >=0 && i + k < boardSizeI && //not out of bounds
+        				j + m >=0 && j +m < boardSizeJ){
 
         			int cost = r.nextInt(maxCost) + Math.abs(k) + Math.abs(m);
-        			nodes[i+k][j+m].addNeighbor(nodes[i][j], cost);
+        			nodes[j+m][i+k].addNeighbor(nodes[j][i], cost);
         			
         		}
 			}
@@ -520,12 +417,12 @@ public class DijkstraVisual extends JFrame {
 	private HashSet<NodeLabel> rejects = new HashSet<NodeLabel>();
 	
 	private void resetDijkstra(){
-		finalized = new HashSet<NodeLabel>(boardSize*boardSize);
+		finalized = new HashSet<NodeLabel>(boardSizeJ*boardSizeI);
 		rejects = new HashSet<NodeLabel>();
 		tNodes = new PriorityQueue<NodeLabel>();
 		
-    	for(int i = 0; i < boardSize; i++){
-        	for(int j = 0; j < boardSize; j++){
+    	for(int i = 0; i < boardSizeI; i++){
+        	for(int j = 0; j < boardSizeJ; j++){
         		nodes[j][i].flip(false);
 		        nodes[j][i].tempCost = Integer.MAX_VALUE;
 		        nodes[j][i].parent = null;
@@ -539,14 +436,14 @@ public class DijkstraVisual extends JFrame {
 	 * Reset the board and begins a new round of path-finding
 	 * @param source
 	 */
-	private void doDijkstra(NodeLabel source){
+	private void doDijkstra(final NodeLabel source){
 		source.parent = null;
 		source.finalCost = 0;
 		resetDijkstra();
 
 		dijk(source);
-    	for(int i = 0; i < boardSize; i++){
-        	for(int j = 0; j < boardSize; j++){
+    	for(int i = 0; i < boardSizeI; i++){
+        	for(int j = 0; j < boardSizeJ; j++){
         		if(!finalized.contains(nodes[j][i])){
         			nodes[j][i].setBackground(DijkstraVisual.COLOR_REJECT);
         			rejects.add(nodes[j][i]);
@@ -570,14 +467,12 @@ public class DijkstraVisual extends JFrame {
 			}
 		}
 
-		NodeLabel n = tNodes.poll();
+		final NodeLabel n = tNodes.poll();
 		if(null == n)
 			return;
 		//n.parent = node;
 		n.finalCost = n.tempCost;
-		if(n.neighborhood().isEmpty()){
-			
-		}
+
 		dijk(n);
 		
 	}
@@ -656,15 +551,11 @@ class NodeLabel extends JLabel implements Comparable<NodeLabel>{
 	}
 	
 	public void flipNeighbors(final boolean on){
-//when done "properly", it's slow and misses some flips (maybe unflips too..)
- //   	SwingUtilities.invokeLater(new Runnable() {
- //           public void run() {
-            	for(NodeLabel node : neighbors.keySet()){
-            		
-            			flip(on, node);
-            	}
-//            }
-//        });
+
+    	for(NodeLabel node : neighbors.keySet()){
+    			flip(on, node);
+    	}
+
 	}
 	
 	public void flip(final boolean on){
@@ -683,26 +574,23 @@ class NodeLabel extends JLabel implements Comparable<NodeLabel>{
 	public String flipTemp;
 	public Color colorTemp;
 	private void flip(final boolean on, final NodeLabel node){
-		//when done "properly", it's slow and misses some flips (maybe unflips too..)
-//    	SwingUtilities.invokeLater(new Runnable() {
-//			public void run() {
-				if(on){
-					node.flipTemp = node.getText();
-					node.colorTemp = node.getBackground();
-					node.setBackground(DijkstraVisual.COLOR_NEIGHBOR);
-					node.setText(String.valueOf(neighbors.get(node)));
-					
-				} else{ 
-					if(!node.isLit){
-						node.setBackground(node.colorTemp);
-						node.setText("   ");
-					} else {
-						node.setBackground(DijkstraVisual.COLOR_PATH);
-						node.setText(String.valueOf(node.flipTemp));
-					}
-				}
-//			}
-//		});
+
+		if(on){
+			node.flipTemp = node.getText();
+			node.colorTemp = node.getBackground();
+			node.setBackground(DijkstraVisual.COLOR_NEIGHBOR);
+			node.setText(String.valueOf(neighbors.get(node)));
+			
+		} else{ 
+			if(!node.isLit){
+				node.setBackground(node.colorTemp);
+				node.setText("   ");
+			} else {
+				node.setBackground(DijkstraVisual.COLOR_PATH);
+				node.setText(String.valueOf(node.flipTemp));
+			}
+		}
+
 	}
 	
 	@Override
