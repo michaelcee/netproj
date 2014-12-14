@@ -11,18 +11,31 @@ import javax.swing.*;
 import javax.swing.border.Border;
 
 
+
+/**
+ * DijkstraVisualizer
+ * contains both Dijkstra and GUI code.  This should be refactored to have the
+ * GUI components distinct from the Dijkstra's components but I don't feel it now
+ * 
+ * @author MIKE
+ *
+ */
 @SuppressWarnings("serial")
 public class DijkstraVisual extends JFrame {
 	
-	//initialize some UI components:   
+	  
     public final static Color COLOR_PATH = new Color(100,100,255);
     public final static Color COLOR_NEIGHBOR = new Color(255,100,100);
     public final static Color COLOR_REJECT = new Color(150, 160, 150);
+    
     private static String dim = "20";
     private static String cost = "10";
-    private static String chance = ".4";
+    private static String chance = ".3";
+    
     private int boardSizeI;//the board will always be sized via a single number
     private int boardSizeJ;//...but we save the second dimension for convenience
+    
+    //initialize UI components
     private JCheckBox checkBox = new JCheckBox("Double width");
     private JButton resizeButton = new JButton("Redim Board");
     private JButton rerollButton = new JButton("Reroll");
@@ -34,21 +47,19 @@ public class DijkstraVisual extends JFrame {
     private JPanel controls;
     private JPanel boardGrid;
 
-    /** [0] = default border, [1] = universal hover border, [2] = blinking border*/
+    /** [0] = default border, [1] = hover border, [2] = source node border*/
     private Border[] borArr;
     /** a temp var for restoring color after mouse exit on hoverings */
     private Color hoverTemp;
-    /**the board itself is composed of 100 NodeLabels*/
-    private NodeLabel[][] nodes;// = new NodeLabel[20][20];
+    /**all NodeLabels.  access using nodes[y][x]*/
+    private NodeLabel[][] nodes;
     private NodeLabel sourceNode;//which node we've clicked on
     private NodeLabel prevNode;
     private final DijkstraVisual instance;
-    private boolean mouseDown;
-    
-    
-    
+    private boolean mouseDown; //if the mouse is down
+
     /**
-     * 
+     * no args from command line, just launch window with default settings
      * @param args
      */
     public static void main(String[] args){
@@ -59,7 +70,8 @@ public class DijkstraVisual extends JFrame {
     
      
     /**
-     * 
+     * creates some resources, initializes the board and calls the super 
+     * constructor but does not make anything visible
      * @param name
      * @param client
      */
@@ -68,6 +80,7 @@ public class DijkstraVisual extends JFrame {
         instance = this;    	
     	borArr = new Border[3];
     	//due to the nature of borders, they have to init here
+    	
     	borArr[0] = BorderFactory.createLineBorder(new Color(0, 0, 0));
     	borArr[1] = BorderFactory.createLineBorder(new Color(255, 255, 255));
     	borArr[2] = BorderFactory.createLineBorder(Color.RED);
@@ -97,10 +110,11 @@ public class DijkstraVisual extends JFrame {
      
     
     /**
-     * start the process of showing the GUI.  the UI manager bit was adapted
-     * from the Oracle tutorial.  
+     * start the process of showing the GUI.  we have to launch on new thread 
+     * otherwise callers would get locked up and callers involve other swing
+     * components
      */
-    public void launch() {
+    private void launch() {
 
          
         SwingUtilities.invokeLater(new Runnable() {
@@ -113,6 +127,14 @@ public class DijkstraVisual extends JFrame {
         
     }
     
+    /**
+     * initialize the board of nodes with the given parameters.  after all
+     * objects are created, the board is randomized using the values of the
+     * controls
+     * 
+     * @param size
+     * @param doubleWide if we want height = size; width = size * 2
+     */
     private void initBoard(int size, boolean doubleWide){
     	boardSizeI = size;
     	boardSizeJ = doubleWide ? size * 2: size;
@@ -124,20 +146,16 @@ public class DijkstraVisual extends JFrame {
 		        nodes[j][i] = spot;
 		        spot.addMouseListener(new MouseAdapter() {
 		            public void mouseEntered(MouseEvent evt) {
-		            	//so we can highlight the spot
 		                nodeMouseEntered(evt);
 		            }
 		            public void mouseExited(MouseEvent evt) {
-		            	//so we can start the fancy fade effect
 		                nodeMouseExited(evt);
 		            }
 		            public void mouseClicked(MouseEvent evt) {
-		            	//so we can send the spot change request
 		                nodeMouseClicked(evt);
 		            }
 		            
 		            public void mousePressed(MouseEvent evt) {
-		            	//so we can send the spot change request
 		                nodeMouseDown(evt);
 		            }
 		            
@@ -150,7 +168,7 @@ public class DijkstraVisual extends JFrame {
         }
     	
     	
-        //create the game board:
+    	//
         boardGrid = new JPanel();
         GridLayout boardLayout = new GridLayout(boardSizeI,boardSizeJ);
         boardGrid.setLayout(boardLayout);
@@ -175,7 +193,7 @@ public class DijkstraVisual extends JFrame {
      * add and layout of all our components for display
      * @param pane
      */
-    public void addComponentsToPane(final Container pane) {
+    private void addComponentsToPane(final Container pane) {
     	//create the ticker at the top:
     	msgPanel = new JPanel();
     	msgPanel.setBackground(new Color(255,255,255));
@@ -295,7 +313,7 @@ public class DijkstraVisual extends JFrame {
 
     private void nodeMouseEntered(MouseEvent evt) { 
     	if(null != prevNode){
-    		if(!rejects.contains(prevNode)){
+    		if(!rejectNodes.contains(prevNode)){
     	    	if(prevNode != sourceNode ){
     	    		prevNode.setBackground(hoverTemp);//default background color
     	    		prevNode.setBorder(borArr[0]);
@@ -308,7 +326,7 @@ public class DijkstraVisual extends JFrame {
     	
     	NodeLabel node = (NodeLabel) evt.getSource(); 
     	prevNode = node;
-    	if(!rejects.contains(node)){
+    	if(!rejectNodes.contains(node)){
     		//kill any fading that may already be taking place:
     		node.setBorder(borArr[1]);
     		//remember the previous color of the spot:
@@ -322,8 +340,6 @@ public class DijkstraVisual extends JFrame {
     	if(mouseDown){
     		node.flipNeighbors(true);
     	}
-	        
-	        //System.out.println(spot.x + ", " + spot.y);
     	
     }
     
@@ -412,14 +428,14 @@ public class DijkstraVisual extends JFrame {
         }}
 	}
 	
-	private PriorityQueue<NodeLabel> tNodes = new PriorityQueue<NodeLabel>();
-	private HashSet<NodeLabel> finalized = new HashSet<NodeLabel>();
-	private HashSet<NodeLabel> rejects = new HashSet<NodeLabel>();
+	private PriorityQueue<NodeLabel> tempNodes = new PriorityQueue<NodeLabel>();
+	private HashSet<NodeLabel> finalizedNodes = new HashSet<NodeLabel>();
+	private HashSet<NodeLabel> rejectNodes = new HashSet<NodeLabel>();
 	
 	private void resetDijkstra(){
-		finalized = new HashSet<NodeLabel>(boardSizeJ*boardSizeI);
-		rejects = new HashSet<NodeLabel>();
-		tNodes = new PriorityQueue<NodeLabel>();
+		finalizedNodes = new HashSet<NodeLabel>(boardSizeJ*boardSizeI);
+		rejectNodes = new HashSet<NodeLabel>();
+		tempNodes = new PriorityQueue<NodeLabel>();
 		
     	for(int i = 0; i < boardSizeI; i++){
         	for(int j = 0; j < boardSizeJ; j++){
@@ -444,40 +460,51 @@ public class DijkstraVisual extends JFrame {
 		dijk(source);
     	for(int i = 0; i < boardSizeI; i++){
         	for(int j = 0; j < boardSizeJ; j++){
-        		if(!finalized.contains(nodes[j][i])){
+        		if(!finalizedNodes.contains(nodes[j][i])){
         			nodes[j][i].setBackground(DijkstraVisual.COLOR_REJECT);
-        			rejects.add(nodes[j][i]);
+        			rejectNodes.add(nodes[j][i]);
         		}
         	}
         }
 
 	}
 	
+	/**
+	 * a recursive step of Dijkstra's algorithm
+	 * @param node
+	 */
 	private void dijk(NodeLabel node){
-		finalized.add(node);
+		finalizedNodes.add(node);
 		HashMap<NodeLabel, Integer> neighborhood = node.neighborhood();
 		for(NodeLabel n : neighborhood.keySet()){
-			if(!finalized.contains(n)){
-				if(n.tempCost > node.finalCost + neighborhood.get(n)){
-					n.tempCost = node.finalCost + neighborhood.get(n);
+			if(!finalizedNodes.contains(n)){
+				int tCost = node.finalCost + neighborhood.get(n);
+				if(n.tempCost > tCost){
+					n.tempCost = tCost;
 					n.parent = node;
 				}
-				if(!tNodes.contains(n))
-					tNodes.add(n);
+				if(!tempNodes.contains(n))
+					tempNodes.add(n);
 			}
 		}
 
-		final NodeLabel n = tNodes.poll();
+		NodeLabel n = tempNodes.poll();
 		if(null == n)
 			return;
-		//n.parent = node;
 		n.finalCost = n.tempCost;
 
 		dijk(n);
 		
 	}
 	
-	private void lightParents(final NodeLabel node, final boolean on){
+	/**
+	 * for highlighting or unhighlighting the shortest path.  this method works 
+	 * backwards, from the destination node and recursively highlights parent 
+	 * nodes until the source node is reached.
+	 * @param node
+	 * @param on
+	 */
+	private void lightParents(NodeLabel node, boolean on){
 		if(null == node)
 			return;    
 		node.flip(on);
@@ -489,17 +516,15 @@ public class DijkstraVisual extends JFrame {
 	
 }
 /**
- * this class extends JLabel to provide the functionality of a spot on the board.
+ * this class extends JLabel to provide the functionality of a node on the board
  * 
- * each spot has fields x,y that are permanently associated with the given spot
+ * each node has a set of x,y coordinates, a temporary cost, a final cost and a
+ * parent node.  Nodes also keep track their neighbors and the related cost.
  * 
- * each spot also has an owner, stored in an int:
- * 	[0] = no owner
- * 	[1] = player 1
- * 	[2] = player 2
+ * utility methods are provided to highlight neighbors and the node itself
  * 
- * the code is otherwise quite self-documenting
- *
+ * nodes also implement comparable so they can be used in a priority queue by
+ * Dijkstra's algorithm.  
  */
 @SuppressWarnings("serial")
 class NodeLabel extends JLabel implements Comparable<NodeLabel>{
